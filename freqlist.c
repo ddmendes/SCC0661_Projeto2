@@ -1,9 +1,6 @@
-#include <stdlib.c>
-
-#ifndef _FREQLIST_H_
-    #include <freqlist.h>
-    #define _FREQLIST_H_
-#endif
+#include <stdio.h>
+#include <stdlib.h>
+#include "freqlist.h"
 
 struct node {
     byte value;
@@ -16,7 +13,14 @@ struct head_node {
     struct node * pointer;
     struct node * back_pointer;
     struct node * tail;
+    int operation_sum;
+    int iterator_sum;
 };
+
+void reorder(freqlist f);
+void append(freqlist f, struct node * toAppend);
+void put(freqlist f, struct node * toPut);
+byte find(freqlist f, byte item, int * err);
 
 freqlist newFreqList() {
     freqlist f = (freqlist) calloc(sizeof(struct head_node), 1);
@@ -24,54 +28,35 @@ freqlist newFreqList() {
     f->pointer = NULL;
     f->back_pointer = NULL;
     f->tail = NULL;
+    f->operation_sum = 0;
     return f;
 }
 
 void add(freqlist f, byte item) {
-    byte err = 0;
+    printf("\nAdding %x\n", item);
+    f->operation_sum++;
+    int err = 0;
     find(f, item, &err);
-
+    printf("find err: %x\n", err);
     if(err == 0) {
         
         f->pointer->occurrences++;
-        if(f->pointer->occurrences > f->back_pointer->occurrences)
+        if(f->back_pointer != NULL && f->pointer->occurrences > f->back_pointer->occurrences)
             reorder(f);
 
     } else {
-        
+        printf("creating new node\n");
         f->pointer = (struct node *) calloc(sizeof(struct node), 1);
         f->pointer->value = item;
         f->pointer->occurrences = 1;
         f->pointer->next = NULL;
-        put(f, f->pointer);
+        append(f, f->pointer);
 
     }
-    
+    printf("\n");
 }
 
-void reorder(freqlist f) {
-    f->back_pointer->next = f->pointer->next;
-    put(f, f->pointer);
-}
-
-void put(freqlist f, struct node * toPut) {
-    f->back_pointer = NULL;
-    f->pointer = NULL;
-
-    while(f->pointer != NULL) {
-        if(toPut->value >= f->pointer->value)
-            break;
-    }
-
-    toPut->next = f->pointer;
-    if(f->back_pointer) {
-        f->back_pointer->next = toPut;
-    } else {
-        f->head = toPut;
-    }
-}
-
-byte find(freqlist f, byte item, byte * err) {
+byte find(freqlist f, byte item, int * err) {
     f->pointer = f->head;
     f->back_pointer = NULL;
     
@@ -89,4 +74,96 @@ byte find(freqlist f, byte item, byte * err) {
     } else {
         return (byte) 1;
     }
+}
+
+void reorder(freqlist f) {
+    f->back_pointer->next = f->pointer->next;
+    put(f, f->pointer);
+}
+
+void append(freqlist f, struct node * toAppend) {
+    if(f->tail == NULL) {
+        f->head = f->tail = toAppend;
+    } else {
+        f->tail = f->tail->next = toAppend;
+    }
+}
+
+void put(freqlist f, struct node * toPut) {
+    f->pointer = f->head;
+    f->back_pointer = NULL;
+
+    while(f->pointer != NULL) {
+        if(toPut->occurrences >= f->pointer->occurrences)
+            break;
+        f->back_pointer = f->pointer;
+        f->pointer = f->pointer->next;
+    }
+
+    if(f->back_pointer != NULL) {
+        f->head = toPut;
+    } else {
+        f->back_pointer->next = toPut;
+    }
+
+    toPut->next = f->pointer;
+}
+
+int initIterator(freqlist f) {
+    f->iterator_sum = f->operation_sum;
+    f->pointer = f->head;
+    return 1;
+}
+
+byte getValue(freqlist f, int * err) {
+
+    if( f->iterator_sum != f->operation_sum ) {
+        if(err) *err = ERR_INVALID_ITERATOR;
+        return 0;
+    }
+
+    return f->pointer->value;
+
+}
+
+unsigned int getOccurrences(freqlist f, int * err) {
+
+    if( f->iterator_sum != f->operation_sum ) {
+        if(err) *err = ERR_INVALID_ITERATOR;
+        return 0;
+    }    
+
+    if(err) *err = 0;
+    return f->pointer->occurrences;
+
+}
+
+void next(freqlist f, int * err) {
+
+    if( f->iterator_sum != f->operation_sum ) {
+        if(err) *err = ERR_INVALID_ITERATOR;
+    } else if(f->pointer->next != NULL) {
+        if(err) *err = 0;
+    } else {
+        if(err) *err = ERR_END_OF_LIST;
+    }
+
+    f->pointer = f->pointer->next;
+
+}
+
+int endOfList(freqlist f) {
+    return f->pointer == NULL;
+}
+
+
+void flist_dump(freqlist f) {
+    f->pointer = f->head;
+    while(f->pointer != NULL) {
+        printf("-------------------------\n");
+        printf("byte: %x\n", f->pointer->value);
+        printf("occurrences: %d\n", f->pointer->occurrences);
+        f->pointer = f->pointer->next;
+    }
+    printf("-------------------------\n");
 }

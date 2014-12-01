@@ -1,8 +1,15 @@
 #include <stdlib.h>
+#include "huffman.h"
 
-#ifndef _HUFFMAN_H_
-    #include <huffman.h>
-#endif
+//Bit masks
+#define BIT_1ST 0b00000001
+#define BIT_2ND 0b00000010
+#define BIT_3RD 0b00000100
+#define BIT_4TH 0b00001000
+#define BIT_5TH 0b00010000
+#define BIT_6TH 0b00100000
+#define BIT_7TH 0b01000000
+#define BIT_8TH 0b10000000
 
 struct huffman_node {
     byte node_value;
@@ -22,6 +29,6 @@ huffmanCompressor newHuffmanCompressor() {
     return h;
 }
 
-void compress(huffmanCompressor h, byte * toCompress, int inputLength, byte ** compressedByteStream, unsigned int * byteStreamLength) {
+void compress(huffmanCompressor h, byte toCompress[], unsigned int inputLength, byte compressedByteStream[], unsigned int * byteStreamLength) {
 
 }
