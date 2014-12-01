@@ -156,6 +156,10 @@ int endOfList(freqlist f) {
     return f->pointer == NULL;
 }
 
+int hasNext(freqlist f) {
+    return f->pointer != NULL && f->pointer->next != NULL;
+}
+
 
 void flist_dump(freqlist f) {
     f->pointer = f->head;
