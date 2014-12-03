@@ -7,7 +7,8 @@ int main (int argc, char * argv[]) {
 
 	byte stream[] = "DAVI DIORIO MENDES";
 	byte * output;
-	unsigned int output_length;
+	byte * decomp;
+	unsigned int output_length, decomp_length;
 	huffmanCompressor h = newHuffmanCompressor();
 	compress(h, stream, strlen(stream), &output, &output_length);
 	
@@ -17,6 +18,16 @@ int main (int argc, char * argv[]) {
 	for(i = 0; i<output_length; i++) {
 		printf("%d ", output[i]);
 	}
+
+	printf("\n");
+	
+	decompress(h, output, output_length, &decomp, &decomp_length);
+	for(i = 0; i < decomp_length; i++) {
+		printf("%c", decomp[i]);
+	}
+
+	free(output);
+	free(decomp);
 	
 	return 0;
 }

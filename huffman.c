@@ -34,6 +34,7 @@ struct path {
 };
 
 void encode(huffmanCompressor h, byte toCompress[], unsigned int inputLength, ArrayList a);
+void decode(huffmanCompressor h, byte * toDecompress, unsigned int inputLength, ArrayList a);
 int checkValue(struct huffman_node * hn, byte b);
 void walkLeft(struct path * p, ArrayList a);
 void walkRight(struct path * p, ArrayList a);
@@ -63,6 +64,41 @@ void compress(huffmanCompressor h, byte toCompress[], unsigned int inputLength, 
     encode(h, toCompress, inputLength, a);
     *compressedByteStream = arrayListCloneArray(a);
     *byteStreamLength = arrayListLength(a);
+}
+
+void decompress(huffmanCompressor h, byte toDecompress[], unsigned int inputLength, byte ** decompressedByteStream, unsigned int * byteStreamLength) {
+    ArrayList a = newArrayList(10);
+    decode(h, toDecompress, inputLength, a);
+    *decompressedByteStream = arrayListCloneArray(a);
+    *byteStreamLength = arrayListLength(a);
+}
+
+void decode(huffmanCompressor h, byte * toDecompress, unsigned int inputLength, ArrayList a) {
+    h->pointer = h->root;
+    int i, j;
+    i = j = 0;
+    printf("\n");
+    while(j < inputLength) {
+        if(i > 7) {
+            i = 0;
+            j++;
+            printf(" ");
+        }
+
+        if(h->pointer->left_child == h->pointer->right_child) {
+            arrayListAdd(a, h->pointer->value[0]);
+            h->pointer = h->root;
+        } else if( (mask[i] & toDecompress[j]) == 0 ) {
+            printf("0");
+            h->pointer = h->pointer->left_child;
+            i++;
+        } else {
+            printf("1");
+            h->pointer = h->pointer->right_child;
+            i++;
+        }
+    }
+    printf("\n");
 }
 
 void encode(huffmanCompressor h, byte * toCompress, unsigned int inputLength, ArrayList a) {
