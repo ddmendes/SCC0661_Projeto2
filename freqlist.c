@@ -33,19 +33,14 @@ freqlist newFreqList() {
 }
 
 void add(freqlist f, byte item) {
-    printf("\nAdding %x\n", item);
     f->operation_sum++;
     int err = 0;
     find(f, item, &err);
-    printf("find err: %x\n", err);
     if(err == 0) {
-        
         f->pointer->occurrences++;
         if(f->back_pointer != NULL && f->pointer->occurrences > f->back_pointer->occurrences)
             reorder(f);
-
     } else {
-        printf("creating new node\n");
         f->pointer = (struct node *) calloc(sizeof(struct node), 1);
         f->pointer->value = item;
         f->pointer->occurrences = 1;
@@ -53,7 +48,6 @@ void add(freqlist f, byte item) {
         append(f, f->pointer);
 
     }
-    printf("\n");
 }
 
 byte find(freqlist f, byte item, int * err) {
@@ -100,7 +94,7 @@ void put(freqlist f, struct node * toPut) {
         f->pointer = f->pointer->next;
     }
 
-    if(f->back_pointer != NULL) {
+    if(f->back_pointer == NULL) {
         f->head = toPut;
     } else {
         f->back_pointer->next = toPut;

@@ -1,7 +1,7 @@
 
-#define ERR_ITEM_NOT_FOUND 1;
-#define ERR_INVALID_ITERATOR 2;
-#define ERR_END_OF_LIST 3;
+#define ERR_ITEM_NOT_FOUND 1
+#define ERR_INVALID_ITERATOR 2
+#define ERR_END_OF_LIST 3
 
 typedef struct head_node * freqlist;
 typedef char byte;
