@@ -33,26 +33,27 @@ struct path {
     short int i;
 };
 
-void encode(huffmanCompressor h, byte toCompress[], unsigned int inputLength, ArrayList a);
-void decode(huffmanCompressor h, byte * toDecompress, unsigned int inputLength, ArrayList a);
+int encode(HuffmanCompressor h, byte toCompress[], unsigned int inputLength, ArrayList a);
+void decode(HuffmanCompressor h, byte * toDecompress, unsigned int inputLength, int last_bit, ArrayList a);
 int checkValue(struct huffman_node * hn, byte b);
 void walkLeft(struct path * p, ArrayList a);
 void walkRight(struct path * p, ArrayList a);
-void growTree(huffmanCompressor h, freqlist f);
+void growTree(HuffmanCompressor h, freqlist f);
 struct huffman_node * makeNodes(freqlist f, unsigned int * sum);
 struct huffman_node ** sortNodes(struct huffman_node * n1, struct huffman_node * n2, struct huffman_node * n3);
 struct huffman_node * join(struct huffman_node * leaf, struct huffman_node * subTree);
 void dump_code(struct huffman_node * h, char * code);
+struct occur ** serializeFreqList(freqlist f, int * length);
 
 byte mask[] = {0b10000000, 0b01000000, 0b00100000, 0b00010000, 0b00001000, 0b00000100, 0b00000010, 0b00000001 };
 
-huffmanCompressor newHuffmanCompressor() {
-    huffmanCompressor h = (huffmanCompressor) calloc(sizeof(struct huffman_struct), 1);
+HuffmanCompressor newHuffmanCompressor() {
+    HuffmanCompressor h = (HuffmanCompressor) calloc(sizeof(struct huffman_struct), 1);
     h->root = NULL;
     return h;
 }
 
-void compress(huffmanCompressor h, byte toCompress[], unsigned int inputLength, byte ** compressedByteStream, unsigned int * byteStreamLength) {
+void compress(HuffmanCompressor h, byte toCompress[], unsigned int inputLength, PersistentHuffman * persistentHuffman) {
     int i;
     freqlist f = newFreqList();
     for(i = 0; i < inputLength; i++) {
@@ -61,47 +62,60 @@ void compress(huffmanCompressor h, byte toCompress[], unsigned int inputLength, 
     growTree(h, f);
 
     ArrayList a = newArrayList(10);
-    encode(h, toCompress, inputLength, a);
-    *compressedByteStream = arrayListCloneArray(a);
-    *byteStreamLength = arrayListLength(a);
+    int last_bit = encode(h, toCompress, inputLength, a);
+
+    *persistentHuffman = (PersistentHuffman) calloc(sizeof(struct persistent_huffman), 1);
+    (*persistentHuffman)->symbol_occur = serializeFreqList(f, &i);
+    (*persistentHuffman)->symbol_count = i;
+    (*persistentHuffman)->cstream = arrayListCloneArray(a);
+    (*persistentHuffman)->cstream_length = arrayListLength(a);
+    (*persistentHuffman)->last_bit = last_bit;
+
 }
 
-void decompress(huffmanCompressor h, byte toDecompress[], unsigned int inputLength, byte ** decompressedByteStream, unsigned int * byteStreamLength) {
+void decompress(HuffmanCompressor h, PersistentHuffman persistentHuffman, byte ** decompressedByteStream, unsigned int * byteStreamLength) {
+    freqlist f = newFreqList();
+    int i, j;
+    for(i = 0; i < persistentHuffman->symbol_count; i++) {
+        for(j = 0; j < persistentHuffman->symbol_occur[i]->occur; j++) {
+            add(f, persistentHuffman->symbol_occur[i]->value);
+        }
+    }
+    growTree(h, f);
+
     ArrayList a = newArrayList(10);
-    decode(h, toDecompress, inputLength, a);
+    decode(h, persistentHuffman->cstream, persistentHuffman->cstream_length, persistentHuffman->last_bit, a);
     *decompressedByteStream = arrayListCloneArray(a);
     *byteStreamLength = arrayListLength(a);
 }
 
-void decode(huffmanCompressor h, byte * toDecompress, unsigned int inputLength, ArrayList a) {
+void decode(HuffmanCompressor h, byte * toDecompress, unsigned int inputLength, int last_bit, ArrayList a) {
     h->pointer = h->root;
     int i, j;
     i = j = 0;
-    printf("\n");
+
     while(j < inputLength) {
         if(i > 7) {
             i = 0;
             j++;
-            printf(" ");
+        } else if(j == inputLength - 1 && i > last_bit) {
+            break;
         }
 
         if(h->pointer->left_child == h->pointer->right_child) {
             arrayListAdd(a, h->pointer->value[0]);
             h->pointer = h->root;
         } else if( (mask[i] & toDecompress[j]) == 0 ) {
-            printf("0");
             h->pointer = h->pointer->left_child;
             i++;
         } else {
-            printf("1");
             h->pointer = h->pointer->right_child;
             i++;
         }
     }
-    printf("\n");
 }
 
-void encode(huffmanCompressor h, byte * toCompress, unsigned int inputLength, ArrayList a) {
+int encode(HuffmanCompressor h, byte * toCompress, unsigned int inputLength, ArrayList a) {
     struct path p;
     p.word = 0;
     p.i = 0;
@@ -122,6 +136,9 @@ void encode(huffmanCompressor h, byte * toCompress, unsigned int inputLength, Ar
 
     if(p.i > 0) {
         arrayListAdd(a, p.word);
+        return p.i;
+    } else {
+        return 7;
     }
 }
 
@@ -151,7 +168,7 @@ void walkRight(struct path * p, ArrayList a) {
     }
 }
 
-void growTree(huffmanCompressor h, freqlist f) {
+void growTree(HuffmanCompressor h, freqlist f) {
     struct huffman_node * popular = (struct huffman_node *) calloc(sizeof(struct huffman_node), 1);
     struct huffman_node * subTree;
     initIterator(f);
@@ -260,7 +277,7 @@ struct huffman_node ** sortNodes(struct huffman_node * n1, struct huffman_node *
     return nodes;
 }
 
-void huffman_dump(huffmanCompressor h) {
+void huffman_dump(HuffmanCompressor h) {
     char * code = (char *) calloc(sizeof(char), 1);
     code[0] = '\0';
     dump_code(h->root, code);
@@ -285,30 +302,22 @@ void dump_code(struct huffman_node * h, char * code) {
     }
 }
 
-/*
-void makeTable(huffmanCompressor h) {
-    unsigned int tableLength = 0;
-    recursiveTableMaker(h->root, "", &tableLength);
-}
+struct occur ** serializeFreqList(freqlist f, int * length) {
+    struct occur ** occurrences = (struct occur **) calloc(sizeof(struct occur *), *length = flistLength(f));
+    int i = 0;
 
-void recursiveTableMaker(struct huffman_node * hn, char * code, unsigned int * tableLength) {
-    if(h->left_child == NULL && h->right_child == NULL) {
-        struct code * c = (struct code *) calloc(sizeof(struct code), 1);
-        c->value = hn->value;
-        c->code = code;
-        *tableLength++;
-
-        h->code_table[tableLength] = c;
-    } else {
-        strcpy(codeCopy, code);
-        strcat(codeCopy, "0");
-        recursiveTableMaker(hn->left_child, codeCopy, tableLength);
-
-        strcpy(codeCopy, code);
-        strcat(codeCopy, "0");
-        recursiveTableMaker(hn->left_child, codeCopy, tableLength);
-
-        free(codeCopy);
+    for(initIterator(f); !endOfList(f); next(f, NULL)) {
+        occurrences[i] = (struct occur *) calloc(sizeof(struct occur), 1);
+        occurrences[i]->value = getValue(f, NULL);
+        occurrences[i]->occur = getOccurrences(f, NULL);
+        i++;
     }
+
+    return occurrences;
 }
-*/
+
+void persistentHuffmanFree(PersistentHuffman p) {
+    free(p->symbol_occur);
+    free(p->cstream);
+    free(p);
+}

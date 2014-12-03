@@ -1,9 +1,24 @@
 
 
-typedef struct huffman_struct * huffmanCompressor;
+typedef struct huffman_struct * HuffmanCompressor;
+typedef struct persistent_huffman * PersistentHuffman;
 typedef char byte;
 
-huffmanCompressor newHuffmanCompressor();
-void compress(huffmanCompressor h, byte * toCompress, unsigned int inputLength, byte ** compressedByteStream, unsigned int * byteStreamLength);
-void decompress(huffmanCompressor h, byte toDecompress[], unsigned int inputLength, byte ** decompressedByteStream, unsigned int * byteStreamLength);
-void huffman_dump(huffmanCompressor h);
+struct occur {
+    byte value;
+    unsigned int occur;
+};
+
+struct persistent_huffman {
+    struct occur ** symbol_occur;
+    unsigned int symbol_count;
+    byte * cstream;
+    unsigned int cstream_length;
+    int last_bit;
+};
+
+HuffmanCompressor newHuffmanCompressor();
+void compress(HuffmanCompressor h, byte toCompress[], unsigned int inputLength, PersistentHuffman * persistentHuffman);
+void decompress(HuffmanCompressor h, PersistentHuffman persistentHuffman, byte ** decompressedByteStream, unsigned int * byteStreamLength);
+void huffman_dump(HuffmanCompressor h);
+void persistentHuffmanFree(PersistentHuffman p);

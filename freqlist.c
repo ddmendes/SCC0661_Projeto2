@@ -165,3 +165,12 @@ void flist_dump(freqlist f) {
     }
     printf("-------------------------\n");
 }
+
+unsigned int flistLength(freqlist f) {
+    unsigned int l;
+    f->pointer = f->head;
+    for(l = 0; f->pointer != NULL; l++) {
+        f->pointer = f->pointer->next;
+    }
+    return l;
+}

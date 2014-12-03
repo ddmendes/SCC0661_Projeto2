@@ -14,4 +14,5 @@ unsigned int getOccurrences(freqlist f, int * err);
 void next(freqlist f, int * err);
 int endOfList(freqlist f);
 int hasNext(freqlist f);
+unsigned int flistLength(freqlist f);
 void flist_dump(freqlist f);
