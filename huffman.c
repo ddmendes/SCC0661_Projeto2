@@ -15,6 +15,16 @@
 #define BIT_7TH 0b01000000
 #define BIT_8TH 0b10000000
 
+struct node_list {
+    struct elem_node * head;
+    struct elem_node * tail;
+};
+
+struct elem_node {
+    struct huffman_node * elem;
+    struct elem_node * next;
+};
+
 struct huffman_node {
     byte * value;
     int item_count;
@@ -39,11 +49,16 @@ int checkValue(struct huffman_node * hn, byte b);
 void walkLeft(struct path * p, ArrayList a);
 void walkRight(struct path * p, ArrayList a);
 void growTree(HuffmanCompressor h, freqlist f);
-struct huffman_node * makeNodes(freqlist f, unsigned int * sum);
 struct huffman_node ** sortNodes(struct huffman_node * n1, struct huffman_node * n2, struct huffman_node * n3);
 struct huffman_node * join(struct huffman_node * leaf, struct huffman_node * subTree);
 void dump_code(struct huffman_node * h, char * code);
 struct occur ** serializeFreqList(freqlist f, int * length);
+void makeNodes(struct node_list * nl, freqlist f, unsigned int * sum);
+
+void nodeListAdd(struct node_list * nl, struct huffman_node * hn);
+int nodeListHasNodesToMerge(struct node_list * nl);
+void nodeListMerge(struct node_list * nl);
+void nodeListDoublePop(struct node_list * nl, struct huffman_node ** h1, struct huffman_node ** h2);
 
 byte mask[] = {0b10000000, 0b01000000, 0b00100000, 0b00010000, 0b00001000, 0b00000100, 0b00000010, 0b00000001 };
 
@@ -53,7 +68,7 @@ HuffmanCompressor newHuffmanCompressor() {
     return h;
 }
 
-void compress(HuffmanCompressor h, byte toCompress[], unsigned int inputLength, PersistentHuffman * persistentHuffman) {
+void hcompress(HuffmanCompressor h, byte toCompress[], unsigned int inputLength, PersistentHuffman * persistentHuffman) {
     int i;
     freqlist f = newFreqList();
     for(i = 0; i < inputLength; i++) {
@@ -73,7 +88,7 @@ void compress(HuffmanCompressor h, byte toCompress[], unsigned int inputLength, 
 
 }
 
-void decompress(HuffmanCompressor h, PersistentHuffman persistentHuffman, byte ** decompressedByteStream, unsigned int * byteStreamLength) {
+void hdecompress(HuffmanCompressor h, PersistentHuffman persistentHuffman, byte ** decompressedByteStream, unsigned int * byteStreamLength) {
     freqlist f = newFreqList();
     int i, j;
     for(i = 0; i < persistentHuffman->symbol_count; i++) {
@@ -170,18 +185,28 @@ void walkRight(struct path * p, ArrayList a) {
 
 void growTree(HuffmanCompressor h, freqlist f) {
     struct huffman_node * popular = (struct huffman_node *) calloc(sizeof(struct huffman_node), 1);
-    struct huffman_node * subTree;
+    struct node_list * nl = (struct node_list *) calloc(sizeof(struct node_list), 1);
+    nl->head = nl->tail = NULL;
+
     initIterator(f);
     popular->value = (byte *) calloc(sizeof(byte), 1);
     popular->value[0] = getValue(f, NULL);
     popular->item_count = 1;
     popular->probability = getOccurrences(f, NULL);
     unsigned int total = popular->probability;
-    subTree = makeNodes(f, &total);
-    h->root = join(popular, subTree);
+
+    makeNodes(nl, f, &total);
+    popular->probability = popular->probability / total;
+    nodeListAdd(nl, popular);
+
+    while(nodeListHasNodesToMerge(nl)) {
+        nodeListMerge(nl);
+    }
+
+    h->root = nl->head->elem;
 }
 
-struct huffman_node * makeNodes(freqlist f, unsigned int * sum) {
+void makeNodes(struct node_list * nl, freqlist f, unsigned int * sum) {
     struct huffman_node * hn = NULL;
 
     next(f, NULL);
@@ -196,56 +221,25 @@ struct huffman_node * makeNodes(freqlist f, unsigned int * sum) {
     *sum += hn->probability;
 
     if(hasNext(f)) {
-        struct huffman_node ** aux = calloc(sizeof(struct huffman_node *), 2);
-        aux[0] = hn;
-        aux[1] = makeNodes(f, sum);
-        hn->probability = hn->probability / *sum;
-        hn = join(aux[0], aux[1]);
-        free(aux);
-    } else {
-        hn->probability = hn->probability / *sum;
+        makeNodes(nl, f, sum);
     }
-
-    return hn;
+    hn->probability = hn->probability / *sum;
+    nodeListAdd(nl, hn);
 }
 
-struct huffman_node * join(struct huffman_node * leaf, struct huffman_node * subTree) {
+struct huffman_node * join(struct huffman_node * h1, struct huffman_node * h2) {
     struct huffman_node * joinResult = (struct huffman_node *) calloc(sizeof(struct huffman_node), 1);
-    joinResult->probability = leaf->probability + subTree->probability;
-    joinResult->item_count = subTree->item_count + 1;
+    joinResult->probability = h1->probability + h2->probability;
+    joinResult->item_count = h1->item_count + h2->item_count;
 
-    //if(subTree->left_child == NULL && subTree->right_child == NULL) {
-        int i;
-        joinResult->value = (byte *) calloc(sizeof(byte), 1 + subTree->item_count);
-        joinResult->value[0] = leaf->value[0];
-        for(i = 0; i < subTree->item_count; i++)
-            joinResult->value[i+1] = subTree->value[i];
-        joinResult->left_child = leaf;
-        joinResult->right_child = subTree;
-    /*} else {
-        int i, j;
-        struct huffman_node ** nodes = sortNodes(leaf, subTree->left_child, subTree->right_child);
-        struct huffman_node * aux =  (struct huffman_node *) calloc(sizeof(struct huffman_node), 1);
-
-        aux->value = (byte *) calloc(sizeof(byte), nodes[0]->item_count + nodes[1]->item_count);
-        for(i = j = 0; j < nodes[0]->item_count; i++, j++)
-            aux->value[i] = nodes[0]->value[j];
-        for(j = 0; j < nodes[1]->item_count; i++, j++)
-            aux->value[i] = nodes[1]->value[j];
-
-        aux->probability = nodes[0]->probability + nodes[1]->probability;
-        aux->left_child = nodes[0];
-        aux->right_child = nodes[1];
-
-        joinResult->value = (byte *) calloc(sizeof(byte), nodes[2]->item_count + aux->item_count);
-        for(i = j = 0; j < nodes[2]->item_count; i++, j++)
-            joinResult->value[i] = nodes[2]->value[j];
-        for(j = 0; j < aux->item_count; i++, j++)
-            joinResult->value[i] = aux->value[j];
-
-        joinResult->left_child = nodes[2];
-        joinResult->right_child = aux;
-    }*/
+    int i, j = 0;
+    joinResult->value = (byte *) calloc(sizeof(byte), joinResult->item_count);
+    for(i = 0; i < h1->item_count; i++)
+        joinResult->value[j++] = h1->value[i];
+    for(i = 0; i < h2->item_count; i++)
+        joinResult->value[j++] = h2->value[i];
+    joinResult->left_child = h1;
+    joinResult->right_child = h2;
 
     return joinResult;
 }
@@ -320,4 +314,62 @@ void persistentHuffmanFree(PersistentHuffman p) {
     free(p->symbol_occur);
     free(p->cstream);
     free(p);
+}
+
+void nodeListAdd(struct node_list * nl, struct huffman_node * hn) {
+    struct elem_node * en = (struct elem_node *) calloc(sizeof(struct elem_node), 1);
+    en->elem = hn;
+    if(nl->head == NULL) {
+        nl->head = nl->tail = en;
+        en->elem = hn;
+        en->next = NULL;
+    } else {
+        struct elem_node * aux = nl->head;
+        struct elem_node * back = NULL;
+        while(aux != NULL && en->elem->probability > aux->elem->probability) {
+            back = aux;
+            aux = aux->next;
+        }
+        if(aux == NULL) {
+            nl->tail->next = en;
+            nl->tail = en;
+            en->next = NULL;
+        } else {
+            if(back == NULL) {
+                nl->head = en;
+            } else {
+                back->next = en;
+            }
+            en->next = aux;
+        }
+    }
+}
+
+int nodeListHasNodesToMerge(struct node_list * nl) {
+    return (nl->head != NULL && nl->head->next != NULL);
+}
+
+void nodeListMerge(struct node_list * nl) {
+    struct huffman_node * h1; 
+    struct huffman_node * h2; 
+    struct huffman_node * hr;
+    nodeListDoublePop(nl, &h1, &h2);
+    hr = join(h1, h2);
+    nodeListAdd(nl, hr);
+}
+
+void nodeListDoublePop(struct node_list * nl, struct huffman_node ** h1, struct huffman_node ** h2) {
+    if(nl->head != NULL && nl->head->next != NULL) {
+        struct elem_node * aux;
+
+        *h1 = nl->head->elem;
+        *h2 = nl->head->next->elem;
+
+        aux = nl->head;
+        nl->head = nl->head->next->next;
+        free(aux->next);
+        free(aux);
+    } else {
+        *h1 = *h2 = NULL;
+    }
 }

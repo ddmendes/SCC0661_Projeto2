@@ -18,7 +18,7 @@ struct persistent_huffman {
 };
 
 HuffmanCompressor newHuffmanCompressor();
-void compress(HuffmanCompressor h, byte toCompress[], unsigned int inputLength, PersistentHuffman * persistentHuffman);
-void decompress(HuffmanCompressor h, PersistentHuffman persistentHuffman, byte ** decompressedByteStream, unsigned int * byteStreamLength);
+void hcompress(HuffmanCompressor h, byte toCompress[], unsigned int inputLength, PersistentHuffman * persistentHuffman);
+void hdecompress(HuffmanCompressor h, PersistentHuffman persistentHuffman, byte ** decompressedByteStream, unsigned int * byteStreamLength);
 void huffman_dump(HuffmanCompressor h);
 void persistentHuffmanFree(PersistentHuffman p);
