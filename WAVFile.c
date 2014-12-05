@@ -24,7 +24,8 @@ WAVFile newWAVFile(FILE * wfile) {
 }
 
 void WAVFileWrite(FILE * wfile, WAVFile wav) {
-	fwrite(&wav, wav->ChunkSize + 8, 1, wfile);
+	fwrite(wav, sizeof(struct wav_file) - sizeof(byte *), 1, wfile);
+	fwrite(wav->data, sizeof(byte), wav->Subchunk2Size, wfile);
 	fflush(wfile);
 }
 

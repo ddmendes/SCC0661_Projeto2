@@ -1,11 +1,13 @@
 
 
-:all
-    gcc freqlist.c -c -g 
-    gcc huffman.c -c -g 
-    gcc arraylist.c -c -g 
-    gcc test.c -o test.exe *.o
+all:	hello
 
-:clean
-    rm *.o test.exe
+hello:	gcc freqlist.c -c -g -Wall \
+    	gcc huffman.c -c -g -Wall  \
+     	gcc arraylist.c -c -g -Wall\
+     	gcc WAVFile.c -c -g -Wall  \
+     	gcc CWVFile.c -c -g -Wall  \
+     	gcc main.c -o cwv.exe -g -Wall *.o
+
+clean: 	rm *.o cwv.exe
 

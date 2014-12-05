@@ -8,11 +8,18 @@ void fromFile(PersistentHuffman p, char * fname);
 
 int main (int argc, char * argv[]) {
 
-	byte stream[] = "DAVI DIORIO MENDES";
+	//byte stream[] = "DAVI DIORIO MENDES";
+	FILE * f = fopen("huffman.c", "r");
+	fseek(f, 0, SEEK_END);
+	int length = ftell(f);
+	fseek(f, 0, SEEK_SET);
+	byte * stream = (byte *) calloc(sizeof(byte), length);
+	fread(stream, sizeof(byte), length, f);
+	fclose(f);
 	HuffmanCompressor a, b;
 	PersistentHuffman p;
 	byte * output;
-	unsigned int length;
+	
 
 	a = newHuffmanCompressor();
 	hcompress(a, stream, strlen(stream), &p);
@@ -26,6 +33,11 @@ int main (int argc, char * argv[]) {
 	b = newHuffmanCompressor();
 	hdecompress(b, p, &output, &length);
 
+	f = fopen("hfdecomp.c", "w");
+	fwrite(output, sizeof(byte), length, f);
+	fflush(f);
+	fclose(f);
+
 	int i;
 	for(i = 0; i < length; i++) {
 		printf("%c", output[i]);
@@ -38,11 +50,11 @@ int main (int argc, char * argv[]) {
 void toFile(PersistentHuffman p, char * fname) {
 	FILE * f = fopen(fname, "wb");
 	int i;
-	fwrite(&(p->symbol_count), sizeof(unsigned int), 1, f);
+	fwrite(&(p->symbol_count), sizeof(int), 1, f);
 	for(i = 0; i < p->symbol_count; i++) {
 		fwrite(p->symbol_occur[i], sizeof(struct occur), 1, f);
 	}
-	fwrite(&(p->cstream_length), sizeof(unsigned int), 1, f);
+	fwrite(&(p->cstream_length), sizeof(int), 1, f);
 	fwrite(p->cstream, sizeof(byte), p->cstream_length, f);
 	fwrite(&(p->last_bit), sizeof(int), 1, f);
 	fflush(f);
@@ -52,13 +64,13 @@ void toFile(PersistentHuffman p, char * fname) {
 void fromFile(PersistentHuffman p, char * fname) {
 	FILE *f = fopen(fname, "rb");
 	int i;
-	fread(&(p->symbol_count), sizeof(unsigned int), 1, f);
+	fread(&(p->symbol_count), sizeof(int), 1, f);
 	p->symbol_occur = (struct occur **) calloc(sizeof(struct occur *), p->symbol_count);
 	for(i = 0; i < p->symbol_count; i++) {
 		p->symbol_occur[i] = (struct occur *) calloc(sizeof(struct occur), 1);
 		fread(p->symbol_occur[i], sizeof(struct occur), 1, f);
 	}
-	fread(&(p->cstream_length), sizeof(unsigned int), 1, f);
+	fread(&(p->cstream_length), sizeof(int), 1, f);
 	p->cstream = (byte *) calloc(sizeof(byte), p->cstream_length);
 	fread(p->cstream, sizeof(byte), p->cstream_length, f);
 	fread(&(p->last_bit) , sizeof(int), 1, f);

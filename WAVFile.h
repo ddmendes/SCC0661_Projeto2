@@ -3,18 +3,18 @@ typedef struct wav_file * WAVFile;
 typedef char byte;
 
 struct wav_file {
-	unsigned int ChunkID;
-	unsigned int ChunkSize;
-	unsigned int Format;
-	unsigned int Subchunk1ID;
-	unsigned int Subchunk1Size;
+	int ChunkID;
+	int ChunkSize;
+	int Format;
+	int Subchunk1ID;
+	int Subchunk1Size;
 	short AudioFormat;
 	short NumChannels;
-	unsigned int SampleRate;
-	unsigned int ByteRate;
+	int SampleRate;
+	int ByteRate;
 	short BlockAlign;
-	unsigned int Subchunk2ID;
-	unsigned int Subchunk2Size;
+	int Subchunk2ID;
+	int Subchunk2Size;
 	byte * data;
 };
 

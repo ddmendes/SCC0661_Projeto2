@@ -2,24 +2,79 @@
 #include <stdlib.h>
 #include "freqlist.h"
 
+/**
+ * No de uma lista de frequencias.
+ */
 struct node {
+    /**
+     * Byte contado no nó.
+     */
     byte value;
-    unsigned int occurrences;
+    /**
+     * Ocorrências do byte contado no nó.
+     */
+    int occurrences;
+    /**
+     * Encadeamento da lista.
+     */
     struct node * next;
 };
 
+/**
+ * Nó sentinela da estrutura.
+ */
 struct head_node {
+    /**
+     * Ponteiro para cabeça da lista.
+     */
     struct node * head;
+    /**
+     * Ponteiro de navegação na lista;
+     */
     struct node * pointer;
+    /**
+     * Ponteiro atrasado de navegação na lista.
+     */
     struct node * back_pointer;
+    /**
+     * Ponteiro para calda da lista.
+     */
     struct node * tail;
+    /**
+     * Contador de operações.
+     */
     int operation_sum;
+    /**
+     * Estado do contador de operações no início do iterador.
+     */
     int iterator_sum;
 };
 
+/**
+ * Reordena elemento apontado por pointer.
+ * @param f Lista de frequencias em uso.
+ */
 void reorder(freqlist f);
+
+/**
+ * Enfileira um nó no fim da lista.
+ */
 void append(freqlist f, struct node * toAppend);
+
+/**
+ * Insere ordenadamente um nó na lista.
+ * @param f Lista de frequencia em uso.
+ * @param toPut Nó a ser inserido na lista.
+ */
 void put(freqlist f, struct node * toPut);
+
+/**
+ * Busca um elemento na lista.
+ * @param f Lista de frequencia em uso.
+ * @param item Item a ser buscado na lista.
+ * @param err retorno de erro.
+ * @return 1 em caso de sucesso na busca, 0 caso contrário.
+ */
 byte find(freqlist f, byte item, int * err);
 
 freqlist newFreqList() {
@@ -120,7 +175,7 @@ byte getValue(freqlist f, int * err) {
 
 }
 
-unsigned int getOccurrences(freqlist f, int * err) {
+int getOccurrences(freqlist f, int * err) {
 
     if( f->iterator_sum != f->operation_sum ) {
         if(err) *err = ERR_INVALID_ITERATOR;
@@ -151,7 +206,7 @@ int endOfList(freqlist f) {
 }
 
 int hasNext(freqlist f) {
-    return f->pointer != NULL && f->pointer->next != NULL;
+    return f->pointer != f->tail;//NULL &&  f->pointer->next != NULL;
 }
 
 
@@ -166,8 +221,8 @@ void flist_dump(freqlist f) {
     printf("-------------------------\n");
 }
 
-unsigned int flistLength(freqlist f) {
-    unsigned int l;
+int flistLength(freqlist f) {
+    int l;
     f->pointer = f->head;
     for(l = 0; f->pointer != NULL; l++) {
         f->pointer = f->pointer->next;

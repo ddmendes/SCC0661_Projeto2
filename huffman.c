@@ -5,60 +5,195 @@
 #include "huffman.h"
 #include "arraylist.h"
 
-//Bit masks
-#define BIT_1ST 0b00000001
-#define BIT_2ND 0b00000010
-#define BIT_3RD 0b00000100
-#define BIT_4TH 0b00001000
-#define BIT_5TH 0b00010000
-#define BIT_6TH 0b00100000
-#define BIT_7TH 0b01000000
-#define BIT_8TH 0b10000000
-
+/**
+ * Nó de sentinela da lista de nós de huffman.
+ */
 struct node_list {
+    /**
+     * Cabeça da lista.
+     */
     struct elem_node * head;
-    struct elem_node * tail;
 };
 
+
+/**
+ * Nó da lista de nós de huffman.
+ */
 struct elem_node {
+    /**
+     * Ponteiro para nó de huffman.
+     */
     struct huffman_node * elem;
+    /**
+     * Encadeamento da lista.
+     */
     struct elem_node * next;
 };
 
+/**
+ * Estrutura do nó de huffman.
+ */
 struct huffman_node {
+    /**
+     * Lista de valores contidos na subárvore.
+     */
     byte * value;
+    /**
+     * Número de item contidos em vales.
+     */
     int item_count;
+    /**
+     * Probabilidade de ocorrência do nó.
+     */
     double probability;
+    /**
+     * Encadeamento esquerdo da árvore.
+     */
     struct huffman_node * left_child;
+    /**
+     * Encadeamento direito da árvore.
+     */
     struct huffman_node * right_child;
 };
 
+/**
+ * Nó sentinela da árvore de huffman.
+ */
 struct huffman_struct {
+    /**
+     * Ponteiro para raiz da árvore.
+     */
     struct huffman_node * root;
+    /**
+     * Ponteiro de navegação dentro da estrutura.
+     */
     struct huffman_node * pointer;
 };
 
+/**
+ * Estrutura de cálculo de caminhos na árvore.
+ */
 struct path {
+    /**
+     * Palavra atualmete sendo escrita.
+     */
     byte word;
+    /**
+     * Bit atualmente sendo escrito.
+    */
     short int i;
 };
 
-int encode(HuffmanCompressor h, byte toCompress[], unsigned int inputLength, ArrayList a);
-void decode(HuffmanCompressor h, byte * toDecompress, unsigned int inputLength, int last_bit, ArrayList a);
-int checkValue(struct huffman_node * hn, byte b);
-void walkLeft(struct path * p, ArrayList a);
-void walkRight(struct path * p, ArrayList a);
-void growTree(HuffmanCompressor h, freqlist f);
-struct huffman_node ** sortNodes(struct huffman_node * n1, struct huffman_node * n2, struct huffman_node * n3);
-struct huffman_node * join(struct huffman_node * leaf, struct huffman_node * subTree);
-void dump_code(struct huffman_node * h, char * code);
-struct occur ** serializeFreqList(freqlist f, int * length);
-void makeNodes(struct node_list * nl, freqlist f, unsigned int * sum);
+/**
+ * Codifica um vetor de bytes atraves de huffman.
+ * @param h Compressor de huffman em uso.
+ * @param toCompress vetor a ser comprimido.
+ * @param inputLength tamanho do vetor a ser comprimido.
+ * @param a ArrayList com o resultado da compressão.
+ * @return Endereço do ultimo bit escrito dentro do último byte.
+ */
+int encode(HuffmanCompressor h, byte * toCompress, int inputLength, ArrayList a);
 
+/**
+ * Decodifica um vetor de bytes atraves de huffman.
+ * @param h Compressor de huffman em uso.
+ * @param toDecompress vetor a ser descomprimido.
+ * @param inputLength tamanho do vetor a ser descomprimido.
+ * @param a ArrayList com o resultado da descompressão.
+ */
+void decode(HuffmanCompressor h, byte * toDecompress, int inputLength, int last_bit, ArrayList a);
+
+/**
+ * Verifica se um valor está em uma sub arvore.
+ * @param hn Nó de huffman mais alto na sub árvore.
+ * @param b byte a ser buscado.
+ * @return 1 caso o byte foi encontrado na sub árvore, 0 caso contrário.
+ */
+int checkValue(struct huffman_node * hn, byte b);
+
+/**
+ * Escreve instrução de caminho à esquerda no byte de huffman sendo gerado.
+ * @param p Estrutura de caminho em uso.
+ * @param a ArrayList de saída do huffman.
+ */
+void walkLeft(struct path * p, ArrayList a);
+
+/**
+ * Escreve instrução de caminho à direita no byte de huffman sendo gerado.
+ * @param p Estrutura de caminho em uso.
+ * @param a ArrayList de saída do huffman.
+ */
+void walkRight(struct path * p, ArrayList a);
+
+/**
+ * Gera árvore de huffman a partir de uma lista de frequencias.
+ * @param Compressor huffman sendo utilizado.
+ * @param f lista de frequencias utilizada.
+ */
+void growTree(HuffmanCompressor h, freqlist f);
+
+/**
+ * Une dois nós de huffman em uma sub árvore.
+ * @param h1 Nó a ser unido.
+ * @param h2 Nó a ser unido.
+ * @return sub árvore de huffman.
+ */
+struct huffman_node * join(struct huffman_node * h1, struct huffman_node * h2);
+
+/**
+ * Descreve árvore de huffman gerada.
+ * @param h No atual de huffman.
+ * @param code código atualmente gerado.
+ */
+void dump_code(struct huffman_node * h, char * code);
+
+/**
+ * Serializa lista de frequencias em um vetor de ocorrências.
+ */
+struct occur ** serializeFreqList(freqlist f, int * length);
+
+/**
+ * Gera nós da árvore de huffman.
+ * @param nl Lista de nós de huffman gerados.
+ * @param f Lista de frequencias em uso.
+ * @param sum somatório de elementos.
+ */
+void makeNodes(struct node_list * nl, freqlist f, int * sum);
+
+/**
+ * adciona um novo elemento a lista de nós.
+ * @param nl Lista de nós utilizados.
+ * @param hn Nó de huffman a ser inserido na lista.
+  */
 void nodeListAdd(struct node_list * nl, struct huffman_node * hn);
+
+/**
+ * Verifica se há nós suficientes na lista para gerar uma sub arvore.
+ * @param nl Lista de nós em uso.
+ * @return 1 caso haja nos suficientes para uma operação de merge, 0 caso contrário.
+ */
 int nodeListHasNodesToMerge(struct node_list * nl);
+
+/**
+ * Une duas subárvores da lista de nós em uma e a reinsere na lista.
+ * @param nl Lista de nós em uso.
+ */
 void nodeListMerge(struct node_list * nl);
+
+/**
+ * Remove duas sub árvores da cabeça da lista.
+ * @param nl Lista de nós em uso.
+ * @param h1 Ponteiro de retorno de nó de huffman extraído da lista.
+ * @param h2 Ponteiro de retorno de nó de huffman extraído da lista.
+ */
 void nodeListDoublePop(struct node_list * nl, struct huffman_node ** h1, struct huffman_node ** h2);
+
+/**
+ * Recupera o tamanho da lista de nós;
+ * @param nl Lista de nós em uso.
+ * @return Número de nos na lista.
+ */
+int nodeListSize(struct node_list * nl);
 
 byte mask[] = {0b10000000, 0b01000000, 0b00100000, 0b00010000, 0b00001000, 0b00000100, 0b00000010, 0b00000001 };
 
@@ -68,7 +203,7 @@ HuffmanCompressor newHuffmanCompressor() {
     return h;
 }
 
-void hcompress(HuffmanCompressor h, byte toCompress[], unsigned int inputLength, PersistentHuffman * persistentHuffman) {
+void hcompress(HuffmanCompressor h, byte * toCompress, int inputLength, PersistentHuffman * persistentHuffman) {
     int i;
     freqlist f = newFreqList();
     for(i = 0; i < inputLength; i++) {
@@ -85,10 +220,9 @@ void hcompress(HuffmanCompressor h, byte toCompress[], unsigned int inputLength,
     (*persistentHuffman)->cstream = arrayListCloneArray(a);
     (*persistentHuffman)->cstream_length = arrayListLength(a);
     (*persistentHuffman)->last_bit = last_bit;
-
 }
 
-void hdecompress(HuffmanCompressor h, PersistentHuffman persistentHuffman, byte ** decompressedByteStream, unsigned int * byteStreamLength) {
+void hdecompress(HuffmanCompressor h, PersistentHuffman persistentHuffman, byte ** decompressedByteStream, int * byteStreamLength) {
     freqlist f = newFreqList();
     int i, j;
     for(i = 0; i < persistentHuffman->symbol_count; i++) {
@@ -104,7 +238,7 @@ void hdecompress(HuffmanCompressor h, PersistentHuffman persistentHuffman, byte 
     *byteStreamLength = arrayListLength(a);
 }
 
-void decode(HuffmanCompressor h, byte * toDecompress, unsigned int inputLength, int last_bit, ArrayList a) {
+void decode(HuffmanCompressor h, byte * toDecompress, int inputLength, int last_bit, ArrayList a) {
     h->pointer = h->root;
     int i, j;
     i = j = 0;
@@ -113,7 +247,7 @@ void decode(HuffmanCompressor h, byte * toDecompress, unsigned int inputLength, 
         if(i > 7) {
             i = 0;
             j++;
-        } else if(j == inputLength - 1 && i > last_bit) {
+        } else if( (j == inputLength - 1) && (i > last_bit) ) {
             break;
         }
 
@@ -130,7 +264,7 @@ void decode(HuffmanCompressor h, byte * toDecompress, unsigned int inputLength, 
     }
 }
 
-int encode(HuffmanCompressor h, byte * toCompress, unsigned int inputLength, ArrayList a) {
+int encode(HuffmanCompressor h, byte * toCompress, int inputLength, ArrayList a) {
     struct path p;
     p.word = 0;
     p.i = 0;
@@ -186,14 +320,14 @@ void walkRight(struct path * p, ArrayList a) {
 void growTree(HuffmanCompressor h, freqlist f) {
     struct huffman_node * popular = (struct huffman_node *) calloc(sizeof(struct huffman_node), 1);
     struct node_list * nl = (struct node_list *) calloc(sizeof(struct node_list), 1);
-    nl->head = nl->tail = NULL;
+    nl->head = NULL;
 
     initIterator(f);
     popular->value = (byte *) calloc(sizeof(byte), 1);
     popular->value[0] = getValue(f, NULL);
     popular->item_count = 1;
     popular->probability = getOccurrences(f, NULL);
-    unsigned int total = popular->probability;
+    int total = popular->probability;
 
     makeNodes(nl, f, &total);
     popular->probability = popular->probability / total;
@@ -206,7 +340,7 @@ void growTree(HuffmanCompressor h, freqlist f) {
     h->root = nl->head->elem;
 }
 
-void makeNodes(struct node_list * nl, freqlist f, unsigned int * sum) {
+void makeNodes(struct node_list * nl, freqlist f, int * sum) {
     struct huffman_node * hn = NULL;
 
     next(f, NULL);
@@ -223,6 +357,7 @@ void makeNodes(struct node_list * nl, freqlist f, unsigned int * sum) {
     if(hasNext(f)) {
         makeNodes(nl, f, sum);
     }
+
     hn->probability = hn->probability / *sum;
     nodeListAdd(nl, hn);
 }
@@ -242,33 +377,6 @@ struct huffman_node * join(struct huffman_node * h1, struct huffman_node * h2) {
     joinResult->right_child = h2;
 
     return joinResult;
-}
-
-struct huffman_node ** sortNodes(struct huffman_node * n1, struct huffman_node * n2, struct huffman_node * n3) {
-    struct huffman_node ** nodes = (struct huffman_node **) calloc(sizeof(struct huffman_node *), 3);
-    struct huffman_node * aux;
-
-    nodes[0] = n1;
-    nodes[1] = n2;
-    nodes[2] = n3;
-
-    if(nodes[1]->probability > nodes[2]->probability) {
-        aux = nodes[1];
-        nodes[1] = nodes[2];
-        nodes[2] = aux;
-    }
-
-    if(nodes[0]->probability > nodes[2]->probability) {
-        aux = nodes[0];
-        nodes[0] = nodes[2];
-        nodes[2] = aux;
-    } else if(nodes[0]->probability > nodes[1]->probability) {
-        aux = nodes[0];
-        nodes[0] = nodes[1];
-        nodes[1] = aux;
-    }
-
-    return nodes;
 }
 
 void huffman_dump(HuffmanCompressor h) {
@@ -318,10 +426,10 @@ void persistentHuffmanFree(PersistentHuffman p) {
 
 void nodeListAdd(struct node_list * nl, struct huffman_node * hn) {
     struct elem_node * en = (struct elem_node *) calloc(sizeof(struct elem_node), 1);
+    
     en->elem = hn;
     if(nl->head == NULL) {
-        nl->head = nl->tail = en;
-        en->elem = hn;
+        nl->head = en;
         en->next = NULL;
     } else {
         struct elem_node * aux = nl->head;
@@ -330,17 +438,12 @@ void nodeListAdd(struct node_list * nl, struct huffman_node * hn) {
             back = aux;
             aux = aux->next;
         }
-        if(aux == NULL) {
-            nl->tail->next = en;
-            nl->tail = en;
-            en->next = NULL;
-        } else {
-            if(back == NULL) {
-                nl->head = en;
-            } else {
-                back->next = en;
-            }
+        if(back == NULL) {
+            nl->head = en;
             en->next = aux;
+        } else {
+            en->next = back->next;
+            back->next = en;
         }
     }
 }
@@ -354,7 +457,28 @@ void nodeListMerge(struct node_list * nl) {
     struct huffman_node * h2; 
     struct huffman_node * hr;
     nodeListDoublePop(nl, &h1, &h2);
+
+    int i;
+    for(i = 0; i < h1->item_count; i++) {
+        if(h1->value[i] == 'I') {
+            printf("h1\n");
+        }
+    }
+
+    for(i = 0; i < h2->item_count; i++) {
+        if(h2->value[i] == 'I') {
+            printf("h2\n");
+        }
+    }
+
     hr = join(h1, h2);
+
+    for(i = 0; i < hr->item_count; i++) {
+        if(hr->value[i] == 'I') {
+            printf("hr\n\n");
+        }
+    }
+
     nodeListAdd(nl, hr);
 }
 
@@ -372,4 +496,13 @@ void nodeListDoublePop(struct node_list * nl, struct huffman_node ** h1, struct 
     } else {
         *h1 = *h2 = NULL;
     }
+}
+
+int nodeListSize(struct node_list * nl) {
+    int i;
+    struct elem_node * en = nl->head;
+    for(i = 0; en != NULL; i++) {
+        en = en->next;
+    }
+    return i;
 }

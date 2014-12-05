@@ -3,19 +3,46 @@
 #include <string.h>
 #include "arraylist.h"
 
+/**
+ * Redimensiona o ArrayList para um cluster size a mais.
+ */
 void resizeUp(ArrayList a);
 
+/**
+ * Estrutura utilizada no array list.
+ */
 struct array_list {
+	/**
+	 * Array de elementos.
+	 */
 	elem * array;
-	unsigned int cluster_size;
-	unsigned int cluster_units;
-	unsigned int array_size;
-	unsigned int operation_count;
-	unsigned int iterator_count;
-	unsigned int pointer;
+	/**
+	 * Tamanho base do array.
+	 */
+	int cluster_size;
+	/**
+	 * Quantidade de clusteres em uso.
+	 */
+	int cluster_units;
+	/**
+	 * Espaço utilizado no array.
+	 */
+	int array_size;
+	/**
+	 * Contador de operações.
+	 */
+	int operation_count;
+	/**
+	 * Valor do contador de operações quando o iterador é iniciado.
+	 */
+	int iterator_count;
+	/**
+	 * Ponteiro de navegação no vetor.
+	 */
+	int pointer;
 };
 
-ArrayList newArrayList(unsigned int cluster_size) {
+ArrayList newArrayList(int cluster_size) {
 	ArrayList a = (ArrayList) calloc(sizeof(struct array_list), 1);
 	a->array_size = a->operation_count = a->iterator_count = a->pointer = 0;
 	a->cluster_size = cluster_size;
@@ -44,7 +71,7 @@ void arrayListInitIterator(ArrayList a) {
 	a->pointer = 0;
 }
 
-elem arrayListNext(ArrayList a, unsigned int * err) {
+elem arrayListNext(ArrayList a, int * err) {
 	if(a->iterator_count != a->operation_count) {
 		if(err) *err = ERR_INVALID_ITERATOR;
 		return 0;
@@ -71,6 +98,6 @@ elem * arrayListCloneArray(ArrayList a) {
 	return arr;
 }
 
-unsigned int arrayListLength(ArrayList a) {
+int arrayListLength(ArrayList a) {
 	return a->array_size;
 }
